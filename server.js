@@ -10,9 +10,12 @@ app.use(express.json());
 
 // Importar rutas
 const chatRoutes = require('./routes/chatRoutes');
+const userRoutes = require('./routes/userRouter');
 
 // Usar rutas
 app.use('/chat', chatRoutes);
+app.use('/users', userRoutes);
+
 
 // Ruta raíz
 app.get('/', (req, res) => {
