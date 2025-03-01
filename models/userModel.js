@@ -4,7 +4,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-}, { timestamps: true }); // timestamps agrega createdAt y updatedAt automáticamente
+  isVerified: { type: Boolean, default: false }, // 📌 Usuario NO verificado por defecto
+  verificationToken: { type: String } // 📌 Token de verificación único
+});
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);

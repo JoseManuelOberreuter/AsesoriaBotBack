@@ -1,31 +1,62 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sendVerificationEmail } = require('../utils/mailer');
+const { validatePassword } = require('../utils/passwordValidator'); 
 
 const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";  // Usa una clave segura
 
 // 📌 Registrar Usuario
 const registerUser = async (req, res) => {
   try {
+    console.log("📌 Recibida solicitud de registro:", req.body);
+
     const { name, email, password } = req.body;
+
+    // 📌 Validar la seguridad de la contraseña
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ error: passwordValidation.message });
+    }
 
     // Verificar si el usuario ya existe
     const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ error: "El usuario ya existe" });
+    if (userExists) {
+      console.log("❌ El usuario ya existe:", email);
+      return res.status(400).json({ error: "El usuario ya existe" });
+    }
 
     // Encriptar contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Crear nuevo usuario
-    const newUser = new User({ name, email, password: hashedPassword });
-    await newUser.save();
+    // Generar Token para verificación
+    const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(201).json({ message: "Usuario creado exitosamente" });
+    // Crear usuario
+    const newUser = new User({ 
+      name, 
+      email, 
+      password: hashedPassword,
+      isVerified: false, 
+      verificationToken 
+    });
+
+    await newUser.save();
+    console.log("✅ Usuario guardado en BD:", newUser);
+
+    // 📌 Verificar si la función de correo se ejecuta
+    console.log("📧 Llamando a sendVerificationEmail...");
+    await sendVerificationEmail(email, verificationToken);
+    console.log("✅ Correo de verificación enviado a:", email);
+
+    res.status(201).json({ message: "Usuario creado exitosamente. Revisa tu correo." });
   } catch (error) {
+    console.error("❌ Error al registrar usuario:", error);
     res.status(500).json({ error: "Error al registrar usuario" });
   }
 };
+
 
 // 📌 Iniciar Sesión
 const loginUser = async (req, res) => {
@@ -35,6 +66,9 @@ const loginUser = async (req, res) => {
     // Verificar si el usuario existe
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
+
+    // 📌 Verificar si la cuenta ha sido confirmada
+    if (!user.isVerified) return res.status(400).json({ error: "Debes confirmar tu cuenta antes de iniciar sesión." });
 
     // Comparar contraseña
     const isMatch = await bcrypt.compare(password, user.password);
@@ -78,4 +112,31 @@ const updateUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, updateUser };
+// 📌 Verificar Cuenta con el Token
+const verifyUser = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // 📌 Decodificar el token
+    const decoded = jwt.verify(token, SECRET_KEY);
+    
+    // 📌 Buscar usuario con el email del token
+    const user = await User.findOne({ email: decoded.email });
+
+    if (!user) return res.status(400).json({ error: "Token inválido o usuario no encontrado" });
+    if (user.isVerified) return res.status(400).json({ error: "Cuenta ya confirmada" });
+
+    // 📌 Marcar la cuenta como verificada
+    user.isVerified = true;
+    user.verificationToken = undefined; // Eliminamos el token de la BD
+    await user.save();
+
+    res.json({ message: "Cuenta confirmada con éxito. Ya puedes iniciar sesión." });
+  } catch (error) {
+    console.error("❌ Error al verificar cuenta:", error);
+    res.status(400).json({ error: "Token inválido o expirado" });
+  }
+};
+
+
+module.exports = { registerUser, loginUser, updateUser, verifyUser };
