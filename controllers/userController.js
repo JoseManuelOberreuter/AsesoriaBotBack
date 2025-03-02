@@ -1,8 +1,12 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sendVerificationEmail } = require('../utils/mailer');
+const crypto = require('crypto');
+
+const { sendVerificationEmail, sendPasswordResetEmail  } = require('../utils/mailer');
 const { validatePassword } = require('../utils/passwordValidator'); 
+
+
 
 const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";  // Usa una clave segura
 
@@ -138,5 +142,70 @@ const verifyUser = async (req, res) => {
   }
 };
 
+// 📌 Solicitar recuperación de contraseña
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
 
-module.exports = { registerUser, loginUser, updateUser, verifyUser };
+    if (!user) {
+      return res.status(400).json({ error: "No existe una cuenta con este correo." });
+    }
+
+    // 📌 Generar un JWT en lugar de un token aleatorio
+    const resetToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // 📌 Enviar correo con el enlace de restablecimiento
+    await sendPasswordResetEmail(user.email, resetToken);
+
+    res.json({ message: "Correo de recuperación enviado. Revisa tu bandeja de entrada." });
+  } catch (error) {
+    console.error("❌ Error en solicitud de recuperación:", error);
+    res.status(500).json({ error: "Error al solicitar la recuperación de contraseña." });
+  }
+};
+
+
+
+// 📌 Restablecer la contraseña
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    // 📌 Verificar el JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.status(400).json({ error: "Token inválido o expirado." });
+    }
+
+    // 📌 Buscar usuario por email
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      return res.status(400).json({ error: "Usuario no encontrado." });
+    }
+
+    // 📌 Validar seguridad de la nueva contraseña
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ error: passwordValidation.message });
+    }
+
+    // 📌 Encriptar la nueva contraseña
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    await user.save();
+
+    res.json({ message: "Contraseña restablecida con éxito. Ya puedes iniciar sesión." });
+  } catch (error) {
+    console.error("❌ Error al restablecer contraseña:", error);
+    res.status(500).json({ error: "Error al restablecer la contraseña." });
+  }
+};
+
+
+
+module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword };
