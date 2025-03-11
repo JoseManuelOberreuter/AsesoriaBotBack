@@ -6,8 +6,6 @@ const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail  } = require('../utils/mailer');
 const { validatePassword } = require('../utils/passwordValidator'); 
 
-
-
 const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";  // Usa una clave segura
 
 // 📌 Registrar Usuario
@@ -26,7 +24,7 @@ const registerUser = async (req, res) => {
     // Verificar si el usuario ya existe
     const userExists = await User.findOne({ email });
     if (userExists) {
-      console.log("❌ El usuario ya existe:", email);
+        console.log("❌ El usuario ya existe:", email);
       return res.status(400).json({ error: "El usuario ya existe" });
     }
 
@@ -60,7 +58,6 @@ const registerUser = async (req, res) => {
     res.status(500).json({ error: "Error al registrar usuario" });
   }
 };
-
 
 // 📌 Iniciar Sesión
 const loginUser = async (req, res) => {
@@ -165,8 +162,6 @@ const requestPasswordReset = async (req, res) => {
   }
 };
 
-
-
 // 📌 Restablecer la contraseña
 const resetPassword = async (req, res) => {
   try {
@@ -206,6 +201,42 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// 📌 Eliminar usuario
+const deleteUser = async (req, res) => {
+  try {
+    console.log("📌 Eliminando usuario:", req.params.id);
+    
+    const { email, password, confirmacion } = req.body;
+
+    // Validar si la confirmación es correcta
+    if (!confirmacion || confirmacion.toLowerCase() !== "eliminar") {
+      return res.status(400).json({ error: "Debe confirmar la eliminación escribiendo 'eliminar'" });
+    }
+
+    // Buscar al usuario por email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Verificar que la contraseña sea correcta
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Contraseña incorrecta" });
+    }
+
+    // Eliminar usuario
+    await User.deleteOne({ email });
+
+    console.log("✅ Usuario eliminado correctamente:", email);
+    res.status(200).json({ message: "Usuario eliminado con éxito" });
+
+  } catch (error) {
+    console.error("❌ Error al eliminar usuario:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
 
 
-module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword };
+
+module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, deleteUser };

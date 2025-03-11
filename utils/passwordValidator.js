@@ -16,7 +16,7 @@ const validatePassword = (password) => {
     const uppercaseRegex = /[A-Z]/;
     const lowercaseRegex = /[a-z]/;
     const numberRegex = /[0-9]/;
-    const specialCharRegex = /[!@#$%^&*]/;
+    const specialCharRegex = /[!@#$%^&*.]/;
   
     if (password.length < minLength) {
       return { isValid: false, message: "La contraseña debe tener al menos 8 caracteres." };
@@ -31,7 +31,7 @@ const validatePassword = (password) => {
       return { isValid: false, message: "La contraseña debe contener al menos un número." };
     }
     if (!specialCharRegex.test(password)) {
-      return { isValid: false, message: "La contraseña debe contener al menos un carácter especial (!@#$%^&*)." };
+      return { isValid: false, message: "La contraseña debe contener al menos un carácter especial (!@#$%^&*.)." };
     }
   
     return { isValid: true, message: "Contraseña válida." };
