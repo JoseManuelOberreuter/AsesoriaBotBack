@@ -6,16 +6,14 @@ const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail  } = require('../utils/mailer');
 const { validatePassword } = require('../utils/passwordValidator'); 
 
-const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";  // Usa una clave segura
-
 // 📌 Registrar Usuario
 const registerUser = async (req, res) => {
   try {
-    console.log("📌 Recibida solicitud de registro:", req.body);
+    console.log("📌 Recibida solicitud de registro:");
 
     const { name, email, password } = req.body;
 
-    // 📌 Validar la seguridad de la contraseña
+    // Validar la seguridad de la contraseña
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
       return res.status(400).json({ error: passwordValidation.message });
@@ -47,7 +45,7 @@ const registerUser = async (req, res) => {
     await newUser.save();
     console.log("✅ Usuario guardado en BD:", newUser);
 
-    // 📌 Verificar si la función de correo se ejecuta
+    // Verificar si la función de correo se ejecuta
     console.log("📧 Llamando a sendVerificationEmail...");
     await sendVerificationEmail(email, verificationToken);
     console.log("✅ Correo de verificación enviado a:", email);
@@ -68,7 +66,7 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
 
-    // 📌 Verificar si la cuenta ha sido confirmada
+    // Verificar si la cuenta ha sido confirmada
     if (!user.isVerified) return res.status(400).json({ error: "Debes confirmar tu cuenta antes de iniciar sesión." });
 
     // Comparar contraseña
@@ -76,7 +74,7 @@ const loginUser = async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: "Contraseña incorrecta" });
 
     // Generar token JWT
-    const token = jwt.sign({ id: user._id }, SECRET_KEY, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
     res.json({ message: "Inicio de sesión exitoso", token });
   } catch (error) {
@@ -118,16 +116,16 @@ const verifyUser = async (req, res) => {
   try {
     const { token } = req.params;
 
-    // 📌 Decodificar el token
-    const decoded = jwt.verify(token, SECRET_KEY);
+    // Decodificar el token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // 📌 Buscar usuario con el email del token
+    // Buscar usuario con el email del token
     const user = await User.findOne({ email: decoded.email });
 
     if (!user) return res.status(400).json({ error: "Token inválido o usuario no encontrado" });
     if (user.isVerified) return res.status(400).json({ error: "Cuenta ya confirmada" });
 
-    // 📌 Marcar la cuenta como verificada
+    // Marcar la cuenta como verificada
     user.isVerified = true;
     user.verificationToken = undefined; // Eliminamos el token de la BD
     await user.save();
@@ -149,10 +147,10 @@ const requestPasswordReset = async (req, res) => {
       return res.status(400).json({ error: "No existe una cuenta con este correo." });
     }
 
-    // 📌 Generar un JWT en lugar de un token aleatorio
+    // Generar un JWT en lugar de un token aleatorio
     const resetToken = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // 📌 Enviar correo con el enlace de restablecimiento
+    // Enviar correo con el enlace de restablecimiento
     await sendPasswordResetEmail(user.email, resetToken);
 
     res.json({ message: "Correo de recuperación enviado. Revisa tu bandeja de entrada." });
@@ -168,7 +166,7 @@ const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    // 📌 Verificar el JWT
+    // Verificar el JWT
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -176,19 +174,19 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ error: "Token inválido o expirado." });
     }
 
-    // 📌 Buscar usuario por email
+    // Buscar usuario por email
     const user = await User.findOne({ email: decoded.email });
     if (!user) {
       return res.status(400).json({ error: "Usuario no encontrado." });
     }
 
-    // 📌 Validar seguridad de la nueva contraseña
+    // Validar seguridad de la nueva contraseña
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.isValid) {
       return res.status(400).json({ error: passwordValidation.message });
     }
 
-    // 📌 Encriptar la nueva contraseña
+    // Encriptar la nueva contraseña
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
@@ -204,7 +202,7 @@ const resetPassword = async (req, res) => {
 // 📌 Eliminar usuario
 const deleteUser = async (req, res) => {
   try {
-    console.log("📌 Eliminando usuario:", req.params.id);
+    console.log("Eliminando usuario:", req.params.id);
     
     const { email, password, confirmacion } = req.body;
 
