@@ -4,6 +4,21 @@ const app = require('./server'); // Importa la configuración del servidor
 
 const PORT = process.env.PORT || 4005;
 
+const startMessage = `
+                                                                       
+      ██                                            ▀████▀     ██      
+     ▄██▄                                             ██      ▄██▄     
+    ▄█▀██▄    ▄██▀███ ▄▄█▀██ ▄██▀███ ▄██▀██▄▀███▄███  ██     ▄█▀██▄    
+   ▄█  ▀██    ██   ▀▀▄█▀   ████   ▀▀██▀   ▀██ ██▀ ▀▀  ██    ▄█  ▀██    
+   ████████   ▀█████▄██▀▀▀▀▀▀▀█████▄██     ██ ██      ██    ████████   
+  █▀      ██  █▄   ████▄    ▄█▄   ████▄   ▄██ ██      ██   █▀      ██  
+▄███▄   ▄████▄██████▀ ▀█████▀██████▀ ▀█████▀▄████▄  ▄████▄███▄   ▄████▄
+                                                                       
+                                                                                                                                
+`;
+
+console.log(startMessage);
+
 // Conectar a la base de datos antes de iniciar el servidor
 connectDB().then(() => {
   app.listen(PORT, () => {
