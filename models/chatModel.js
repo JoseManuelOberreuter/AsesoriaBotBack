@@ -6,12 +6,19 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 
-const chatSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Vincular chat con usuario
-  title: { type: String, default: "Nuevo Chat" }, // Nombre del chat (editable)
-  messages: [messageSchema], // Array de mensajes
-  createdAt: { type: Date, default: Date.now, expires: '30d' } // Se borra en 30 días automáticamente
-});
+const ChatSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },  // Usuario dueño del chat
+  title: { type: String, default: 'Nuevo Chat' },  // Nombre del chat (editable)
+  messages: [
+      {
+          role: { type: String, enum: ['user', 'bot'], required: true }, 
+          text: { type: String, required: true },
+          timestamp: { type: Date, default: Date.now }
+      }
+  ],
+  createdAt: { type: Date, default: Date.now },  // Fecha de creación
+  updatedAt: { type: Date, default: Date.now }   // Última actualización
+}, { timestamps: true });
 
-const Chat = mongoose.model('Chat', chatSchema);
+const Chat = mongoose.model('Chat', ChatSchema);
 module.exports = Chat;

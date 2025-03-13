@@ -1,14 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { getUserChats } = require('../controllers/chatController'); 
+const chatController = require('../controllers/chatController'); 
 
-// 📌 Ruta GET para obtener chats
-router.get('/chats', getUserChats);  
+// Ruta para crear un chat
+router.post('/create', chatController.createChat);  
 
-router.post('/message', saveMessage);
+// Ruta para crenombrar un chat
+router.put('/rename', chatController.renameChat);
 
-router.put('/rename', renameChat);
+// Ruta para guardar los mensajes del chat
+router.post('/add-message', chatController.addMessageToChat);
 
-router.delete('/delete/:chatId', deleteChat);
+// Ruta para traer todos los chats del usuario
+router.get('/user-chats/:userId', chatController.getUserChats);
+
+// Ruta para eliminar un chat
+router.delete('/delete/:chatId', chatController.deleteChat);
 
 module.exports = router;

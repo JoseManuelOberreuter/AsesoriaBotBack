@@ -1,64 +1,72 @@
 const Chat = require('../models/chatModel');
 
+// Crear un nuevo chat
+const createChat = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const newChat = new Chat({ userId });
+        await newChat.save();
+        res.status(201).json(newChat);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al crear el chat', error });
+    }
+};
+
+// Guardar un mensaje en un chat existente
+const addMessageToChat = async (req, res) => {
+    try {
+        const { chatId, role, text } = req.body;
+
+        const chat = await Chat.findById(chatId);
+        if (!chat) return res.status(404).json({ message: 'Chat no encontrado' });
+
+        chat.messages.push({ role, text });
+        chat.updatedAt = new Date();
+        await chat.save();
+
+        res.json(chat);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al agregar mensaje', error });
+    }
+};
+
 // Obtener todos los chats de un usuario
 const getUserChats = async (req, res) => {
-  try {
-    const userId = req.user.id; // ID del usuario autenticado
-    const chats = await Chat.find({ userId }).sort({ createdAt: -1 });
-    res.status(200).json(chats);
-  } catch (error) {
-    console.error('❌ Error al obtener chats:', error);
-    res.status(500).json({ error: 'Error al obtener los chats' });
-  }
-};
-
-// Guardar un mensaje en un chat (o crear uno nuevo si no existe)
-const saveMessage = async (req, res) => {
-  try {
-    const { chatId, message, sender } = req.body;
-    let chat;
-
-    if (chatId) {
-      // Si el chat existe, agrega el mensaje
-      chat = await Chat.findById(chatId);
-      if (!chat) return res.status(404).json({ error: "Chat no encontrado" });
-    } else {a
-      // Si no hay chatId, crea un nuevo chat
-      chat = new Chat({ userId: req.user.id, messages: [] });
+    try {
+        const { userId } = req.params;
+        const chats = await Chat.find({ userId }).sort({ updatedAt: -1 });
+        res.json(chats);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los chats', error });
     }
-
-    chat.messages.push({ sender, message });
-    await chat.save();
-    res.status(200).json(chat);
-  } catch (error) {
-    console.error('❌ Error al guardar mensaje:', error);
-    res.status(500).json({ error: 'Error al guardar mensaje' });
-  }
 };
 
-// Cambiar el nombre de un chat
+// Renombrar un chat
 const renameChat = async (req, res) => {
-  try {
-    const { chatId, newTitle } = req.body;
-    const chat = await Chat.findByIdAndUpdate(chatId, { title: newTitle }, { new: true });
-    if (!chat) return res.status(404).json({ error: "Chat no encontrado" });
-    res.status(200).json(chat);
-  } catch (error) {
-    console.error('❌ Error al renombrar chat:', error);
-    res.status(500).json({ error: 'Error al renombrar chat' });
-  }
+    try {
+        const { chatId, title } = req.body;
+        const chat = await Chat.findByIdAndUpdate(chatId, { title }, { new: true });
+        res.json(chat);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al renombrar el chat', error });
+    }
 };
 
 // Eliminar un chat
 const deleteChat = async (req, res) => {
-  try {
-    const { chatId } = req.params;
-    await Chat.findByIdAndDelete(chatId);
-    res.status(200).json({ message: 'Chat eliminado' });
-  } catch (error) {
-    console.error('❌ Error al eliminar chat:', error);
-    res.status(500).json({ error: 'Error al eliminar chat' });
-  }
+    try {
+        const { chatId } = req.params;
+        await Chat.findByIdAndDelete(chatId);
+        res.json({ message: 'Chat eliminado' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al eliminar el chat', error });
+    }
 };
 
-module.exports = { getUserChats, saveMessage, renameChat, deleteChat };
+module.exports = {
+    createChat,
+    addMessageToChat,
+    getUserChats,
+    renameChat,
+    deleteChat
+};
