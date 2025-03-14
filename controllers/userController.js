@@ -66,8 +66,20 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
 
-    // Verificar si la cuenta ha sido confirmada
-    if (!user.isVerified) return res.status(400).json({ error: "Debes confirmar tu cuenta antes de iniciar sesión." });
+    // 📌 Si la cuenta no está verificada, reenviar el correo de verificación
+    if (!user.isVerified) {
+      // Generar un nuevo token de verificación
+      const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+      // Guardar el nuevo token en la base de datos
+      user.verificationToken = verificationToken;
+      await user.save();
+
+      // Enviar el correo de verificación
+      await sendVerificationEmail(user.email, verificationToken);
+
+      return res.status(400).json({ error: "Debes confirmar tu cuenta antes de iniciar sesión. Se ha reenviado el correo de verificación." });
+    }
 
     // Comparar contraseña
     const isMatch = await bcrypt.compare(password, user.password);
