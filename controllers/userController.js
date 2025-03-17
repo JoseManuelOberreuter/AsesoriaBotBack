@@ -247,6 +247,29 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// 📌 Solicita los datos del usuario
+const getUserData = async (req, res) => {
+  try {
+    // Obtener el token del header de autorización
+    const token = req.header('Authorization').replace('Bearer ', '');
+
+    // Verificar y decodificar el token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Buscar al usuario por el ID que está en el token
+    const user = await User.findById(decoded.id).select('-password -verificationToken');
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Devolver los datos del usuario (sin la contraseña y el token de verificación)
+    res.json(user);
+  } catch (error) {
+    console.error("❌ Error al obtener los datos del usuario:", error);
+    res.status(500).json({ error: "Error al obtener los datos del usuario" });
+  }
+};
 
 
-module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, deleteUser };
+module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, deleteUser, getUserData };

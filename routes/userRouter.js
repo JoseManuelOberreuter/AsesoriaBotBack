@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword} = require('../controllers/userController');
+const { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, getUserData} = require('../controllers/userController');
 const router = express.Router();
 
 // Ruta para registrar un usuario
@@ -19,5 +19,8 @@ router.post('/forgot-password', requestPasswordReset);
 
 // Ruta para restablecer la contraseña con un token
 router.post('/reset-password/:token', resetPassword);
+
+// Ruta para traer los datos del usuario
+router.get('/user-data', getUserData);
 
 module.exports = router;
