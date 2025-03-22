@@ -271,5 +271,30 @@ const getUserData = async (req, res) => {
   }
 };
 
+const uploadAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id; // Se obtiene del middleware de autenticación
+    const user = await User.findById(userId);
 
-module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, deleteUser, getUserData };
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    } 
+
+    // Verificar si se subió un archivo
+    if (!req.file) {
+      return res.status(400).json({ error: "No se ha subido ninguna imagen." });
+    }
+
+    // Guardar la URL del avatar en la base de datos
+    user.avatar = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    await user.save();
+
+    res.json({ message: "Foto de perfil actualizada", avatar: user.avatar });
+  } catch (error) {
+    console.error("❌ Error al actualizar la foto de perfil:", error);
+    res.status(500).json({ error: "Error al actualizar la foto de perfil" });
+  }
+};
+
+
+module.exports = { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, deleteUser, getUserData, uploadAvatar };

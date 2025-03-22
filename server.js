@@ -15,6 +15,7 @@ const userRoutes = require('./routes/userRouter');
 // Usar rutas
 app.use('/chat', chatRoutes);
 app.use('/users', userRoutes);
+app.use('/uploads', express.static('uploads'));
 
 
 // Ruta raíz

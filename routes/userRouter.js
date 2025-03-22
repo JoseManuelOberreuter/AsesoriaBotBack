@@ -1,6 +1,7 @@
 const express = require('express');
 const authMiddleware = require('../middlewares/authMiddleware');
-const { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, getUserData} = require('../controllers/userController');
+const upload = require('../middlewares/uploadMiddleware');
+const { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, getUserData, uploadAvatar} = require('../controllers/userController');
 const router = express.Router();
 
 // Ruta para registrar un usuario
@@ -23,5 +24,8 @@ router.put('/update/:id', authMiddleware, updateUser);
 
 // Ruta para traer los datos del usuario
 router.get('/user-data', authMiddleware, getUserData);
+
+// Ruta para subir la foto de perfil 
+router.post('/upload-avatar', authMiddleware, upload.single('avatar'), uploadAvatar);
 
 module.exports = router;
