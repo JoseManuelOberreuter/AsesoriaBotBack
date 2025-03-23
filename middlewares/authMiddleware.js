@@ -4,7 +4,6 @@ const authMiddleware = (req, res, next) => {
   try {
     console.log("✅ Middleware de autenticación ejecutado");
 
-    // Obtener el token del header de autorización
     const token = req.header("Authorization");
     if (!token) {
       console.log("⛔ No hay token en la solicitud");
@@ -15,7 +14,7 @@ const authMiddleware = (req, res, next) => {
     const decoded = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET);
 
     // Guardar la información del usuario en `req.user`
-    req.user = decoded;
+    req.user = { _id: decoded.id };
 
     console.log("✅ Token verificado correctamente:", decoded);
 
