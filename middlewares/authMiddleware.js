@@ -2,8 +2,6 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
   try {
-    console.log("✅ Middleware de autenticación ejecutado");
-
     const token = req.header("Authorization");
     if (!token) {
       console.log("⛔ No hay token en la solicitud");
@@ -15,8 +13,6 @@ const authMiddleware = (req, res, next) => {
 
     // Guardar la información del usuario en `req.user`
     req.user = { _id: decoded.id };
-
-    console.log("✅ Token verificado correctamente:", decoded);
 
     next(); // Continuar con la ejecución de la ruta
   } catch (error) {
