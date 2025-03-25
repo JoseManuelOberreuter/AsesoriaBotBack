@@ -1,28 +1,45 @@
+// Carga variables de entorno
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const app = express();
 
-// Importar rutas
+// Rutas
 const chatRoutes = require('./routes/chatRoutes');
 const userRoutes = require('./routes/userRouter');
 const botRoutes = require('./routes/botRoutes');
+const documentRoutes = require('./routes/documentRoutes');
 
-// Middleware
+// 📁 Crear carpetas necesarias si no existen
+const ensureDirectories = () => {
+  const directories = ['uploads', 'uploads/documents'];
+  directories.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`✅ Carpeta creada automáticamente: ${dir}`);
+    }
+  });
+};
+ensureDirectories();
+
+// Middlewares globales
 app.use(cors());
 app.use(express.json());
 
-// Rutas
+// Usar rutas
 app.use('/chat', chatRoutes);
 app.use('/users', userRoutes);
 app.use('/bots', botRoutes);
+app.use('/documents', documentRoutes);
+
+// Servir archivos estáticos
 app.use('/uploads', express.static('uploads'));
 
-
-// Ruta raíz
+// Ruta principal
 app.get('/', (req, res) => {
   res.send('¡Bienvenido al backend de AsessorIA con MongoDB y DeepSeek!');
 });
 
-// Exportar `app` para que `index.js` lo use
 module.exports = app;

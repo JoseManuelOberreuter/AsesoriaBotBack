@@ -1,6 +1,6 @@
 const express = require('express');
 const authMiddleware = require('../middlewares/authMiddleware');
-const upload = require('../middlewares/uploadMiddleware');
+const upload = require('../middlewares/avatarMiddleware');
 const { registerUser, loginUser, updateUser, verifyUser, requestPasswordReset, resetPassword, getUserData, uploadAvatar} = require('../controllers/userController');
 const router = express.Router();
 
