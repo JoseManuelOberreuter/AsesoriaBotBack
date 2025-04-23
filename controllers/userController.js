@@ -9,9 +9,12 @@ const { validatePassword } = require('../utils/passwordValidator');
 // 📌 Registrar Usuario
 const registerUser = async (req, res) => {
   try {
-    console.log("📌 Recibida solicitud de registro:");
-
     const { name, email, password } = req.body;
+
+    // Validar campos requeridos
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: "Todos los campos son requeridos" });
+    }
 
     // Validar la seguridad de la contraseña
     const passwordValidation = validatePassword(password);
@@ -22,7 +25,6 @@ const registerUser = async (req, res) => {
     // Verificar si el usuario ya existe
     const userExists = await User.findOne({ email });
     if (userExists) {
-        console.log("❌ El usuario ya existe:", email);
       return res.status(400).json({ error: "El usuario ya existe" });
     }
 
@@ -34,26 +36,32 @@ const registerUser = async (req, res) => {
     const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     // Crear usuario
-    const newUser = new User({ 
-      name, 
-      email, 
+    const newUser = new User({
+      name,
+      email,
       password: hashedPassword,
-      isVerified: false, 
-      verificationToken 
+      isVerified: false,
+      verificationToken
     });
 
     await newUser.save();
-    console.log("✅ Usuario guardado en BD:", newUser);
 
-    // Verificar si la función de correo se ejecuta
-    console.log("📧 Llamando a sendVerificationEmail...");
+    // Enviar correo de verificación
     await sendVerificationEmail(email, verificationToken);
-    console.log("✅ Correo de verificación enviado a:", email);
 
-    res.status(201).json({ message: "Usuario creado exitosamente. Revisa tu correo." });
+    // Devolver respuesta exitosa
+    res.status(201).json({
+      message: "Usuario registrado exitosamente",
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        isVerified: newUser.isVerified
+      }
+    });
   } catch (error) {
-    console.error("❌ Error al registrar usuario:", error);
-    res.status(500).json({ error: "Error al registrar usuario" });
+    console.error("Error en registerUser:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 };
 
@@ -62,35 +70,42 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Verificar si el usuario existe
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
-
-    // 📌 Si la cuenta no está verificada, reenviar el correo de verificación
-    if (!user.isVerified) {
-      // Generar un nuevo token de verificación
-      const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-      // Guardar el nuevo token en la base de datos
-      user.verificationToken = verificationToken;
-      await user.save();
-
-      // Enviar el correo de verificación
-      await sendVerificationEmail(user.email, verificationToken);
-
-      return res.status(400).json({ error: "Debes confirmar tu cuenta antes de iniciar sesión. Se ha reenviado el correo de verificación." });
+    // Validar campos requeridos
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email y contraseña son requeridos" });
     }
 
-    // Comparar contraseña
+    // Buscar usuario
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
+
+    // Verificar si la cuenta está verificada
+    if (!user.isVerified) {
+      return res.status(401).json({ error: "Por favor verifica tu cuenta primero" });
+    }
+
+    // Verificar contraseña
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Contraseña incorrecta" });
+    if (!isMatch) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
 
     // Generar token JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-    res.json({ message: "Inicio de sesión exitoso", token });
+    res.status(200).json({
+      message: "Login exitoso",
+      token
+    });
   } catch (error) {
-    res.status(500).json({ error: "Error al iniciar sesión" });
+    console.error("Error en loginUser:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 };
 
