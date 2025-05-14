@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+const swagger = require('./swagger/swagger');
 const app = express();
 
 // Rutas
@@ -27,6 +28,9 @@ ensureDirectories();
 // Middlewares globales
 app.use(cors());
 app.use(express.json());
+
+// Swagger documentation
+app.use('/api-docs', swagger.serve, swagger.setup);
 
 // Usar rutas
 app.use('/chat', chatRoutes);
